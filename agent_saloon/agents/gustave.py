@@ -21,7 +21,8 @@ class GustaveAgent(BaseAgent):
         instructions: str,
         functions: Optional[List[Callable]] = None,
         model: str = "gpt-4",
-        tool_choice: Optional[str] = None
+        tool_choice: Optional[str] = None,
+        provider: str = "openai"
     ):
         """
         Initialize Gustave agent.
@@ -31,13 +32,15 @@ class GustaveAgent(BaseAgent):
             functions: List of callable functions
             model: The LLM model to use
             tool_choice: Optional tool selection parameter
+            provider: The LLM provider to use (default: openai)
         """
         super().__init__(
             name="Gustave",
             instructions=instructions,
             model=model,
             functions=functions,
-            tool_choice=tool_choice
+            tool_choice=tool_choice,
+            provider=provider
         )
     
     def process_response(self, content: str) -> Dict[str, Any]:
@@ -69,14 +72,11 @@ class GustaveAgent(BaseAgent):
         if title_match:
             book_title = title_match.group(1).strip()
         
-        # Clean up the content to remove system markers
-        clean_content = content
-        # Remove any function call indicators
-        clean_content = re.sub(r"HANDOFF: .*?(?:\n|$)", "", clean_content, flags=re.MULTILINE)
-        
+        # Keep full content with handoff markers to enable proper discussions
+        # This ensures the complete discussion is visible for consensus detection
         return {
             "consensus": consensus,
-            "content": clean_content.strip(),
+            "content": content.strip(),
             "book_title": book_title,
             "raw_response": content,
             "agent": "Gustave"
