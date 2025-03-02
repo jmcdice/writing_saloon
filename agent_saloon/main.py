@@ -153,10 +153,40 @@ def create_book(args):
     agent_list = get_agent_list(args)
     provider_mapping = get_provider_mapping(args, agent_list)
     
-    logger.system_message(f"Starting new book creation for topic: {args.topic}")
+    logger.system_message(f"Creating book: {args.topic}")
     logger.system_message(f"Using agents: {', '.join(agent_list)}")
-    logger.system_message(f"Provider mapping: {provider_mapping}")
     
+    # Create book manager with specified agents
+    book_manager = BookManager(
+        logger=logger,
+        output_dir=args.output_dir,
+        save_intermediate=True,
+        agent_list=agent_list,
+        provider_mapping=provider_mapping
+    )
+    
+    # Generate the book
+    book = book_manager.generate_book(
+        topic=args.topic,
+        title=args.title,
+        min_chapters=args.min_chapters,
+        max_chapters=args.max_chapters,
+        min_words_per_section=args.min_words,
+        max_words_per_section=args.max_words
+    )
+    
+    logger.success(f"Book '{book.title}' created successfully!")
+    logger.success(f"Book ID: {book.metadata['id']}")
+    
+    # Print book statistics
+    progress = book.get_progress()
+    logger.system_message(f"Book summary:")
+    logger.system_message(f"- Title: {book.title}")
+    logger.system_message(f"- Chapters: {len(book.toc)}")
+    logger.system_message(f"- Total sections: {progress['total_sections']}")
+    logger.system_message(f"- Completed sections: {progress['completed_sections']}")
+    logger.system_message(f"- Progress: {progress['progress_percentage']:.2f}%")
+
     # Create book manager with specified agents
     book_manager = BookManager(
         logger=logger,

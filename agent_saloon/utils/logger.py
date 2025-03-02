@@ -6,6 +6,7 @@ import time
 from typing import Optional, TextIO, Dict, Any
 from datetime import datetime
 import os
+import re
 
 
 class Logger:
@@ -35,6 +36,7 @@ class Logger:
     AGENT_COLORS = {
         "Zero": "cyan",
         "Gustave": "magenta",
+        "Camille": "blue",
         "User": "green",
         "System": "gray"
     }
@@ -130,24 +132,39 @@ class Logger:
         Returns:
             Text without ANSI codes
         """
-        import re
         ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
         return ansi_escape.sub('', text)
     
+    def _clean_agent_commentary(self, text: str) -> str:
+        """
+        Process agent commentary tags from the text.
+        
+        Args:
+            text: Text with potential agent tags
+            
+        Returns:
+            Processed text with formatting preserved for handoffs
+        """
+        # Only clean up extra whitespace
+        text = re.sub(r'\n{3,}', '\n\n', text)
+        text = text.strip()
+        
+        return text
+    
     def system_message(self, message: str):
         """
-        Log a system message.
+        Log a system message in IRC style.
         
         Args:
             message: Message text
         """
         timestamp = self._timestamp()
-        formatted = self._color(f"[{timestamp}] ", "gray") + self._color("*** ", "bold") + message
+        formatted = self._color(f"[{timestamp}] ", "gray") + self._color("* ", "bold") + message
         self._log(formatted)
     
     def agent_message(self, agent: str, message: str):
         """
-        Log an agent message.
+        Log an agent message in IRC style.
         
         Args:
             agent: Agent name
@@ -155,6 +172,9 @@ class Logger:
         """
         timestamp = self._timestamp()
         agent_color = self.AGENT_COLORS.get(agent, "white")
+        
+        # Clean up agent commentary tags
+        message = self._clean_agent_commentary(message)
         
         # Format agent name with brackets and color
         agent_formatted = self._color(f"<{agent}>", agent_color)
@@ -165,7 +185,7 @@ class Logger:
     
     def user_message(self, message: str):
         """
-        Log a user message.
+        Log a user message in IRC style.
         
         Args:
             message: Message text
@@ -177,7 +197,7 @@ class Logger:
     
     def success(self, message: str):
         """
-        Log a success message.
+        Log a success message with green checkmark.
         
         Args:
             message: Message text
@@ -188,7 +208,7 @@ class Logger:
     
     def warning(self, message: str):
         """
-        Log a warning message.
+        Log a warning message with yellow warning sign.
         
         Args:
             message: Message text
@@ -199,7 +219,7 @@ class Logger:
     
     def error(self, message: str):
         """
-        Log an error message.
+        Log an error message with red X.
         
         Args:
             message: Message text

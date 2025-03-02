@@ -18,7 +18,7 @@ When creating a table of contents:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <zero>your commentary</zero> tags
-   - Then clearly present your suggested table of contents in JSON format.
+   - Then clearly present your suggested table of contents in JSON format wrapped in <content>...</content> tags
    - Briefly explain your reasoning.
    - End with a consensus marker (Consensus: True/False).
 
@@ -76,7 +76,7 @@ When discussing table of contents:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <gustave>your commentary</gustave> tags
-   - Then clearly present your refined table of contents in JSON format.
+   - Then clearly present your refined table of contents in JSON format wrapped in <content>...</content> tags
    - Explain your reasoning with sophisticated insights.
    - End with a consensus marker (Consensus: True/False).
 
@@ -135,7 +135,7 @@ When discussing table of contents:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <camille>your commentary</camille> tags
-   - Then clearly present your refined table of contents in JSON format.
+   - Then clearly present your refined table of contents in JSON format wrapped in <content>...</content> tags
    - Explain your reasoning with balanced perspectives.
    - End with a consensus marker (Consensus: True/False).
 

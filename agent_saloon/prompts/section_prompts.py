@@ -18,7 +18,7 @@ When writing section content:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <zero>your commentary</zero> tags
-   - Then write the actual content without any tags
+   - Then write the actual content wrapped in <content>...</content> tags
    - Use Markdown formatting for headings, emphasis, and other elements.
    - End with a consensus marker (Consensus: True/False).
 
@@ -73,7 +73,7 @@ When refining section content:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <gustave>your commentary</gustave> tags
-   - Then write the complete refined content without any tags
+   - Then write the complete refined content wrapped in <content>...</content> tags
    - Use Markdown formatting for headings, emphasis, and other elements.
    - End with a consensus marker (Consensus: True/False).
 
@@ -129,7 +129,7 @@ When writing section content:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <camille>your commentary</camille> tags
-   - Then write the complete content without any tags
+   - Then write the complete content wrapped in <content>...</content> tags
    - Use Markdown formatting for headings, emphasis, and other elements.
    - End with a consensus marker (Consensus: True/False).
 

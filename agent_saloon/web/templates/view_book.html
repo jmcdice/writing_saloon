@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+
+{% block title %}{{ book.title }} - Agent Saloon{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="d-flex flex-wrap align-items-center mb-4">
+            {% if book.metadata.cover_image_path or book.metadata.cover_image %}
+            <div class="me-4 mb-3">
+                <img src="{{ book.metadata.cover_image_path or book.metadata.cover_image }}" alt="Cover for {{ book.title }}" 
+                     class="img-thumbnail" style="max-width: 200px;">
+            </div>
+            {% endif %}
+            <div>
+                <h2 class="mb-3">{{ book.title }}</h2>
+                <p class="text-muted">{{ book.topic }}</p>
+                
+                <div class="mb-4">
+                    <div class="progress progress-indicator">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ book.get_progress().progress_percentage }}%;" 
+                             aria-valuenow="{{ book.get_progress().progress_percentage }}" 
+                             aria-valuemin="0" aria-valuemax="100">
+                        </div>
+                    </div>
+                    <p class="mt-2 small">
+                        {{ book.get_progress().completed_sections }} / {{ book.get_progress().total_sections }} sections complete
+                        ({{ book.get_progress().progress_percentage|round(1) }}%)
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        {% if not book.metadata.cover_image_path and not book.metadata.cover_image %}
+        <div class="mb-4">
+            <a href="{{ url_for('generate_book_cover', book_id=book.metadata.id) }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-image"></i> Generate Cover Image
+            </a>
+        </div>
+        {% endif %}
+        
+        <div class="d-flex gap-2 mb-4">
+            <a href="{{ url_for('continue_book', book_id=book.metadata.id) }}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Continue Writing
+            </a>
+            <a href="{{ url_for('export_book', book_id=book.metadata.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Export
+            </a>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Table of Contents</h5>
+                <span class="badge bg-info">{{ book.toc|length }} chapters</span>
+            </div>
+            <div class="card-body">
+                <div id="toc-container">
+                    <div class="section-list">
+                        {% for chapter_index, chapter in enumerate(book.toc) %}
+                            {% set chapter_id = chapter_index + 1 %}
+                            <div class="section-item section-level-1 {{ 'has-content' if book.sections[chapter_id|string].content else '' }}">
+                                <span>{{ chapter_id }}. {{ chapter.title }}</span>
+                                {% if book.sections[chapter_id|string].content %}
+                                    <span class="badge bg-success float-end">Complete</span>
+                                {% else %}
+                                    <span class="badge bg-secondary float-end">Pending</span>
+                                {% endif %}
+                            </div>
+                            
+                            {% if chapter.sections %}
+                                {% for section_index, section in enumerate(chapter.sections) %}
+                                    {% set section_id = chapter_id|string ~ "." ~ (section_index + 1)|string %}
+                                    <div class="section-item section-level-2 {{ 'has-content' if book.sections[section_id].content else '' }}">
+                                        <span>{{ section_id }} {{ section.title }}</span>
+                                        {% if book.sections[section_id].content %}
+                                            <span class="badge bg-success float-end">Complete</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary float-end">Pending</span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if section.subsections %}
+                                        {% for subsection_index, subsection in enumerate(section.subsections) %}
+                                            {% set subsection_id = section_id ~ "." ~ (subsection_index + 1)|string %}
+                                            <div class="section-item section-level-3 {{ 'has-content' if book.sections[subsection_id].content else '' }}">
+                                                <span>{{ subsection_id }} {{ subsection.title }}</span>
+                                                {% if book.sections[subsection_id].content %}
+                                                    <span class="badge bg-success float-end">Complete</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary float-end">Pending</span>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="content-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="preview-tab" data-bs-toggle="tab" 
+                                data-bs-target="#preview-content" type="button" role="tab">
+                            Preview
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="section-tab" data-bs-toggle="tab" 
+                                data-bs-target="#section-content" type="button" role="tab">
+                            Section View
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="content-tab-content">
+                    <div class="tab-pane fade show active" id="preview-content" role="tabpanel">
+                        <div id="book-preview">
+                            <h1 class="text-center">{{ book.title }}</h1>
+                            
+                            <div class="text-center mb-4">
+                                <p class="text-muted">Generated with Agent Saloon</p>
+                            </div>
+                            
+                            {% for chapter_index, chapter in enumerate(book.toc) %}
+                                {% set chapter_id = chapter_index + 1 %}
+                                {% if book.sections[chapter_id|string].content %}
+                                    <div class="mb-4">
+                                        <h2>{{ chapter.title }}</h2>
+                                        <div class="book-content">
+                                            {{ book.sections[chapter_id|string].content|safe }}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                                
+                                {% if chapter.sections %}
+                                    {% for section_index, section in enumerate(chapter.sections) %}
+                                        {% set section_id = chapter_id|string ~ "." ~ (section_index + 1)|string %}
+                                        {% if book.sections[section_id].content %}
+                                            <div class="mb-4">
+                                                <h3>{{ section.title }}</h3>
+                                                <div class="book-content">
+                                                    {{ book.sections[section_id].content|safe }}
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if section.subsections %}
+                                            {% for subsection_index, subsection in enumerate(section.subsections) %}
+                                                {% set subsection_id = section_id ~ "." ~ (subsection_index + 1)|string %}
+                                                {% if book.sections[subsection_id].content %}
+                                                    <div class="mb-4">
+                                                        <h4>{{ subsection.title }}</h4>
+                                                        <div class="book-content">
+                                                            {{ book.sections[subsection_id].content|safe }}
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                            {% endfor %}
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="section-content" role="tabpanel">
+                        <div class="mb-3">
+                            <label for="section-selector" class="form-label">Select Section</label>
+                            <select class="form-select" id="section-selector">
+                                <option value="">-- Select a section --</option>
+                                {% for section_id, section in book.sections.items() %}
+                                    {% if section.content %}
+                                        <option value="{{ section_id }}">{{ section_id }} - {{ section.title }}</option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div id="selected-section-content" class="mt-4">
+                            <p class="text-muted">Select a section to view its content</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">Book Info</div>
+            <div class="card-body">
+                <p><strong>ID:</strong> {{ book.metadata.id }}</p>
+                <p><strong>Created:</strong> {{ book.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Last Updated:</strong> {{ book.updated_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                <p><strong>Status:</strong> <span class="badge bg-primary">{{ book.metadata.status }}</span></p>
+                <p><strong>Chapters:</strong> {{ book.toc|length }}</p>
+                <p><strong>Total Sections:</strong> {{ book.get_progress().total_sections }}</p>
+                <p><strong>Word Count:</strong> {{ book.get_total_word_count() }}</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Writing Progress</div>
+            <div class="card-body">
+                <canvas id="progressChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Section selector
+    document.getElementById('section-selector').addEventListener('change', function() {
+        const sectionId = this.value;
+        const contentContainer = document.getElementById('selected-section-content');
+        
+        if (!sectionId) {
+            contentContainer.innerHTML = '<p class="text-muted">Select a section to view its content</p>';
+            return;
+        }
+        
+        fetch('/sections/' + encodeURIComponent('{{ book.metadata.id }}'))
+            .then(response => response.json())
+            .then(sections => {
+                if (sections[sectionId]) {
+                    // Find the section in the book
+                    {% for section_id, section in book.sections.items() %}
+                    if ('{{ section_id }}' === sectionId) {
+                        contentContainer.innerHTML = `
+                            <h3>${sections[sectionId].title}</h3>
+                            <div class="section-metadata mb-3">
+                                <span class="badge bg-info">${sections[sectionId].word_count} words</span>
+                                <span class="badge bg-secondary">Level ${sections[sectionId].level}</span>
+                            </div>
+                            <div class="section-content">
+                                {{ section.content|replace('\n', '\\n')|replace('"', '\\"')|safe }}
+                            </div>
+                        `;
+                    }
+                    {% endfor %}
+                } else {
+                    contentContainer.innerHTML = '<p class="text-danger">Section content not found</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching section data:', error);
+                contentContainer.innerHTML = '<p class="text-danger">Error loading section content</p>';
+            });
+    });
+    
+    // Theme-aware chart colors
+    function getChartColors(isDark) {
+        return {
+            completed: isDark ? 'rgba(25, 135, 84, 0.8)' : 'rgba(40, 167, 69, 0.7)',
+            pending: isDark ? 'rgba(173, 181, 189, 0.8)' : 'rgba(108, 117, 125, 0.7)',
+            textColor: isDark ? '#adb5bd' : '#212529'
+        };
+    }
+    
+    // Progress chart
+    let progressChart;
+    
+    function initializeProgressChart() {
+        const ctx = document.getElementById('progressChart');
+        if (!ctx) return;
+        
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const colors = getChartColors(isDark);
+        
+        // If chart already exists, destroy it first
+        if (progressChart) {
+            progressChart.destroy();
+        }
+        
+        progressChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Completed', 'Pending'],
+                datasets: [{
+                    data: [
+                        {{ book.get_progress().completed_sections }},
+                        {{ book.get_progress().total_sections - book.get_progress().completed_sections }}
+                    ],
+                    backgroundColor: [
+                        colors.completed,
+                        colors.pending
+                    ]
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: colors.textColor
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Function to update charts when theme changes
+    function updateChartsForTheme() {
+        initializeProgressChart();
+    }
+    
+    // Initialize chart on load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeProgressChart();
+    });
+    
+    // Add syntax highlighting and markdown rendering to book content
+    document.querySelectorAll('.book-content').forEach(container => {
+        // Simple markdown styling
+        let content = container.innerHTML;
+        
+        // Convert markdown headings to styled headings
+        content = content.replace(/^# (.*$)/gm, '<h2>$1</h2>');
+        content = content.replace(/^## (.*$)/gm, '<h3>$1</h3>');
+        content = content.replace(/^### (.*$)/gm, '<h4>$1</h4>');
+        
+        // Convert markdown bold and italic
+        content = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        content = content.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        
+        // Convert markdown code blocks
+        content = content.replace(/```([a-z]*)\n([\s\S]*?)\n```/g, '<pre><code class="language-$1">$2</code></pre>');
+        
+        // Convert inline code
+        content = content.replace(/`(.*?)`/g, '<code>$1</code>');
+        
+        // Convert paragraphs
+        content = content.replace(/\n\n/g, '</p><p>');
+        
+        // Wrap in paragraph tags if not already wrapped
+        if (!content.startsWith('<h') && !content.startsWith('<p>')) {
+            content = '<p>' + content + '</p>';
+        }
+        
+        container.innerHTML = content;
+    });
+</script>
+{% endblock %}

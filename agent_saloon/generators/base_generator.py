@@ -60,20 +60,13 @@ class BaseGenerator:
             starting_agent_index: Index of the agent to start with
             
         Returns:
-            Dictionary containing the generation results:
-            {
-                "success": Whether generation was successful
-                "content": The generated content
-                "consensus": Whether consensus was reached
-                "forced_consensus": Whether consensus was forced
-                "attempts": Number of attempts made
-                "metadata": Additional metadata from the generation
-            }
+            Dictionary containing the generation results
         """
         start_time = time.time()
         
         if self.logger:
-            self.logger.system_message(f"Starting content generation with prompt: {prompt}")
+            # Simplified initial message
+            self.logger.system_message(f"Starting content generation")
         
         result = self.coordinator.start_collaboration(
             initial_message=prompt,
@@ -87,12 +80,12 @@ class BaseGenerator:
         if self.logger:
             if result["consensus"]:
                 if result["forced_consensus"]:
-                    self.logger.warning(f"Forced consensus after {result['turns']} turns")
-                else:
-                    self.logger.success(f"Consensus reached after {result['turns']} turns")
+                    self.logger.warning(f"Consensus forced after {result['turns']} turns")
+                # Success message will be shown by coordinator
             else:
-                self.logger.error(f"Failed to reach consensus after {result['turns']} turns")
+                self.logger.error(f"No consensus reached after {result['turns']} turns")
             
+            # Simplified completion message
             self.logger.system_message(f"Generation completed in {duration:.2f} seconds")
         
         return {

@@ -88,4 +88,41 @@ class OpenAIProvider(BaseProvider):
     def available_models(self) -> List[str]:
         """Get a list of available models from this provider."""
         return ["gpt-4", "gpt-3.5-turbo"]
+    
+    def generate_image(
+        self,
+        prompt: str,
+        size: str = "1024x1024",
+        model: str = "dall-e-3",
+        quality: str = "standard",
+        style: str = "vivid"
+    ) -> Dict[str, Any]:
+        """
+        Generate an image using DALL-E.
+        
+        Args:
+            prompt: Text description of the image to generate
+            size: Image size (1024x1024, 1024x1792, or 1792x1024)
+            model: DALL-E model to use
+            quality: Image quality (standard or hd)
+            style: Image style (vivid or natural)
+            
+        Returns:
+            Dictionary with image URL and metadata
+        """
+        response = self.client.images.generate(
+            model=model,
+            prompt=prompt,
+            size=size,
+            quality=quality,
+            style=style,
+            n=1
+        )
+        
+        return {
+            "url": response.data[0].url,
+            "revised_prompt": getattr(response.data[0], "revised_prompt", prompt),
+            "model": model,
+            "provider": "openai"
+        }
 

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}Export '{{ book.title }}' - Agent Saloon{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">Export Book: {{ book.title }}</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header">Book Information</div>
+            <div class="card-body">
+                <p><strong>Title:</strong> {{ book.title }}</p>
+                <p><strong>Topic:</strong> {{ book.topic }}</p>
+                <p><strong>Word Count:</strong> {{ book.sections.values()|map(attribute='get_word_count')|sum }}</p>
+                <p><strong>Chapters:</strong> {{ book.toc|length }}</p>
+                <p><strong>Sections:</strong> {{ book.get_progress().total_sections }}</p>
+                <p><strong>Completion:</strong> {{ book.get_progress().progress_percentage|round(1) }}%</p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Download Options</div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Markdown</h5>
+                                <p class="card-text text-muted">Best for editing or GitHub</p>
+                                <a href="/download/{{ title_slug }}/{{ title_slug }}.md" class="btn btn-primary">
+                                    <i class="bi bi-markdown"></i> Download MD
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">HTML</h5>
+                                <p class="card-text text-muted">Best for web viewing</p>
+                                <a href="/download/{{ title_slug }}/{{ title_slug }}.html" class="btn btn-primary">
+                                    <i class="bi bi-filetype-html"></i> Download HTML
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card mb-3">
+                            <div class="card-body">
+                                <h5 class="card-title">Plain Text</h5>
+                                <p class="card-text text-muted">Best for universal compatibility</p>
+                                <a href="/download/{{ title_slug }}/{{ title_slug }}.txt" class="btn btn-primary">
+                                    <i class="bi bi-file-text"></i> Download TXT
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header">HTML Preview</div>
+                    <div class="card-body text-center">
+                        <a href="/download/{{ title_slug }}/{{ title_slug }}.html" class="btn btn-outline-secondary" target="_blank">
+                            <i class="bi bi-eye"></i> View in Browser
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h5>Export Notes</h5>
+                    <ul>
+                        <li>Markdown format is best for further editing or publishing on platforms like GitHub</li>
+                        <li>HTML format includes basic styling and can be viewed directly in a web browser</li>
+                        <li>Plain text format is compatible with any text editor</li>
+                        <li>All exports include the complete book content and table of contents</li>
+                        <li>Only complete sections are included in exports</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('view_book', book_id=book.metadata.id) }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Book
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

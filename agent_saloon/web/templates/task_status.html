@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Task Status - Agent Saloon{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-10 mx-auto">
+        <h2 class="mb-4">Task Status</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Task Information</h5>
+                <span class="badge {{ 'bg-success' if task.status == 'completed' else 'bg-warning' if task.status == 'running' else 'bg-secondary' }}" id="status-badge">
+                    {{ task.status|capitalize }}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Task ID:</strong> {{ task_id }}</p>
+                        <p><strong>Type:</strong> {{ task.type|capitalize }}</p>
+                        <p><strong>Topic:</strong> {{ task.topic or "N/A" }}</p>
+                        <p><strong>Title:</strong> {{ task.title or "To be generated" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Created:</strong> <span id="created-time">{{ task.created_at|int|timestamp_to_time }}</span></p>
+                        <p><strong>Started:</strong> <span id="start-time">{{ task.start_time|int|timestamp_to_time if task.start_time else "Pending" }}</span></p>
+                        <p><strong>Completed:</strong> <span id="end-time">{{ task.end_time|int|timestamp_to_time if task.end_time else "In progress" }}</span></p>
+                        <p><strong>Agents:</strong> {{ ", ".join(task.agent_list) }}</p>
+                    </div>
+                </div>
+                
+                <div id="task-progress" class="mt-3" style="{{ 'display: none;' if not task.progress }}">
+                    <div class="progress progress-indicator mb-2">
+                        <div class="progress-bar" role="progressbar" 
+                             style="width: {{ task.progress.progress_percentage if task.progress else 0 }}%;" 
+                             aria-valuenow="{{ task.progress.progress_percentage if task.progress else 0 }}" 
+                             aria-valuemin="0" aria-valuemax="100" id="progress-bar">
+                        </div>
+                    </div>
+                    <p class="small" id="progress-text">
+                        {% if task.progress %}
+                            {{ task.progress.completed_sections }} / {{ task.progress.total_sections }} sections complete
+                            ({{ task.progress.progress_percentage|round(1) }}%)
+                        {% endif %}
+                    </p>
+                </div>
+                
+                {% if task.status == 'completed' and task.book_id %}
+                    <div class="text-center mt-4">
+                        <a href="{{ url_for('view_book', book_id=task.book_id) }}" class="btn btn-success">
+                            <i class="bi bi-book"></i> View Generated Book
+                        </a>
+                    </div>
+                    
+                    {% if task.type == 'cover' and task.cover_image %}
+                    <div class="mt-4">
+                        <h5>Generated Cover Image</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="text-center mb-3">
+                                    <img src="{{ task.cover_image }}" alt="Cover Image" class="img-fluid img-thumbnail" style="max-height: 300px;">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header">Image Prompt</div>
+                                    <div class="card-body">
+                                        <p>{{ task.image_prompt }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                {% elif task.status == 'failed' %}
+                    <div class="alert alert-danger mt-3">
+                        <strong>Error:</strong> {{ task.error }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Generation Logs</div>
+            <div class="card-body">
+                <div class="log-console" id="task-logs">
+                    <p class="text-muted">Loading logs...</p>
+                </div>
+                
+                <div class="mt-3 text-center">
+                    <button id="refresh-logs" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-clockwise"></i> Refresh Logs
+                    </button>
+                    <button id="auto-refresh" class="btn btn-outline-primary">
+                        <i class="bi bi-play-circle"></i> Auto Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Format timestamps
+    function formatTime(timestamp) {
+        if (!timestamp) return "N/A";
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString();
+    }
+    
+    // Update task status
+    let autoRefreshInterval = null;
+    
+    function updateTaskStatus() {
+        fetch('/api/task/{{ task_id }}/status')
+            .then(response => response.json())
+            .then(data => {
+                // Update status badge
+                const statusBadge = document.getElementById('status-badge');
+                statusBadge.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                statusBadge.className = `badge ${
+                    data.status === 'completed' ? 'bg-success' : 
+                    data.status === 'running' ? 'bg-warning' : 
+                    data.status === 'failed' ? 'bg-danger' : 'bg-secondary'
+                }`;
+                
+                // Update timestamps
+                if (data.start_time) {
+                    document.getElementById('start-time').textContent = formatTime(data.start_time);
+                }
+                if (data.end_time) {
+                    document.getElementById('end-time').textContent = formatTime(data.end_time);
+                }
+                
+                // Update progress if available
+                if (data.progress && data.progress.total_sections > 0) {
+                    document.getElementById('task-progress').style.display = 'block';
+                    document.getElementById('progress-bar').style.width = `${data.progress.progress_percentage}%`;
+                    document.getElementById('progress-bar').setAttribute('aria-valuenow', data.progress.progress_percentage);
+                    document.getElementById('progress-text').textContent = 
+                        `${data.progress.completed_sections} / ${data.progress.total_sections} sections complete
+                        (${data.progress.progress_percentage.toFixed(1)}%)`;
+                }
+                
+                // Update logs
+                if (data.logs && data.logs.length > 0) {
+                    const logsContainer = document.getElementById('task-logs');
+                    logsContainer.innerHTML = '';
+                    
+                    data.logs.forEach(log => {
+                        const logEntry = document.createElement('div');
+                        logEntry.className = 'log-entry';
+                        logEntry.textContent = log.message;
+                        logsContainer.appendChild(logEntry);
+                    });
+                    
+                    // Scroll to bottom of logs
+                    logsContainer.scrollTop = logsContainer.scrollHeight;
+                }
+                
+                // Display book link if completed
+                if (data.status === 'completed' && data.book_id) {
+                    // Check if we already have the button
+                    if (!document.querySelector('a[href*="view_book"]')) {
+                        const cardBody = statusBadge.closest('.card-body');
+                        const linkDiv = document.createElement('div');
+                        linkDiv.className = 'text-center mt-4';
+                        linkDiv.innerHTML = `
+                            <a href="/book/${data.book_id}" class="btn btn-success">
+                                <i class="bi bi-book"></i> View Generated Book
+                            </a>
+                        `;
+                        cardBody.appendChild(linkDiv);
+                    }
+                    
+                    // Stop auto-refresh if enabled
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                        autoRefreshInterval = null;
+                        document.getElementById('auto-refresh').innerHTML = 
+                            '<i class="bi bi-play-circle"></i> Auto Refresh';
+                    }
+                }
+                
+                // Display error if failed
+                if (data.status === 'failed' && data.error) {
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'alert alert-danger mt-3';
+                    errorDiv.innerHTML = `<strong>Error:</strong> ${data.error}`;
+                    
+                    const existingError = document.querySelector('.alert-danger');
+                    if (!existingError) {
+                        const cardBody = statusBadge.closest('.card-body');
+                        cardBody.appendChild(errorDiv);
+                    }
+                    
+                    // Stop auto-refresh if enabled
+                    if (autoRefreshInterval) {
+                        clearInterval(autoRefreshInterval);
+                        autoRefreshInterval = null;
+                        document.getElementById('auto-refresh').innerHTML = 
+                            '<i class="bi bi-play-circle"></i> Auto Refresh';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching task status:', error);
+            });
+    }
+    
+    // Refresh button
+    document.getElementById('refresh-logs').addEventListener('click', updateTaskStatus);
+    
+    // Auto-refresh toggle
+    document.getElementById('auto-refresh').addEventListener('click', function() {
+        if (autoRefreshInterval) {
+            clearInterval(autoRefreshInterval);
+            autoRefreshInterval = null;
+            this.innerHTML = '<i class="bi bi-play-circle"></i> Auto Refresh';
+        } else {
+            updateTaskStatus(); // Run immediately
+            autoRefreshInterval = setInterval(updateTaskStatus, 3000);
+            this.innerHTML = '<i class="bi bi-pause-circle"></i> Stop Refresh';
+        }
+    });
+    
+    // Initial status update
+    updateTaskStatus();
+    
+    // Start auto-refresh if task is running
+    if ('{{ task.status }}' === 'running' || '{{ task.status }}' === 'queued') {
+        document.getElementById('auto-refresh').click();
+    }
+</script>
+{% endblock %}

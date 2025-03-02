@@ -59,7 +59,7 @@ class CollaborationCoordinator:
         # Validate agents
         if len(agents) < 2:
             raise ValueError("At least two agents are required for collaboration")
-    
+
     def start_collaboration(
         self,
         initial_message: str,
@@ -75,14 +75,7 @@ class CollaborationCoordinator:
             starting_agent_index: Index of the agent to start with
             
         Returns:
-            Dictionary containing the collaboration results:
-            {
-                "consensus": Whether consensus was reached
-                "forced_consensus": Whether consensus was forced
-                "content": The final content
-                "turns": Number of turns taken
-                "messages": Full message history
-            }
+            Dictionary containing the collaboration results
         """
         if starting_agent_index >= len(self.agents):
             raise ValueError(f"Invalid starting agent index: {starting_agent_index}")
@@ -96,8 +89,37 @@ class CollaborationCoordinator:
         forced_consensus = False
         context_variables = context_variables or {}
         
+        # Extract section information for better logging
+        section_id = context_variables.get("section_id", "")
+        section_title = context_variables.get("section_title", "")
+        book_title = context_variables.get("book_title", "")
+        
+        # Create a formatted section info string
+        section_info = ""
+        if section_id:
+            # Determine if this is a chapter, section, or subsection based on the ID format
+            parts = section_id.split(".")
+            if len(parts) == 1:
+                section_info = f"Chapter {section_id}"
+            elif len(parts) == 2:
+                section_info = f"Chapter {parts[0]}, Section {parts[1]}"
+            elif len(parts) == 3:
+                section_info = f"Chapter {parts[0]}, Section {parts[1]}.{parts[2]}"
+            
+            # Add the title if available
+            if section_title:
+                section_info += f" ({section_title})"
+        elif "title" in initial_message.lower() and "book" in initial_message.lower():
+            # For title generation
+            section_info = "Title Generation"
+        elif "toc" in initial_message.lower() or "table of contents" in initial_message.lower():
+            # For TOC generation
+            section_info = "Table of Contents"
+        
         # Log the initial message
         if self.logger:
+            if section_info:
+                self.logger.system_message(f"Working on: {section_info}")
             self.logger.user_message(initial_message)
         
         # Start the collaboration loop
@@ -106,9 +128,12 @@ class CollaborationCoordinator:
                 # Get the current agent
                 current_agent = self.agents[current_agent_index]
                 
-                # Log the current turn
+                # Log the current turn with simplified output
                 if self.logger:
-                    self.logger.system_message(f"Turn {self.turn_count + 1}: {current_agent.name}'s turn")
+                    turn_message = f"Turn {self.turn_count + 1}: {current_agent.name}"
+                    if section_info:
+                        turn_message = f"{section_info} - {turn_message}"
+                    self.logger.system_message(turn_message)
                 
                 # Get the appropriate provider for this agent
                 provider = self.providers.get(current_agent.provider)
@@ -120,9 +145,9 @@ class CollaborationCoordinator:
                     instructions=current_agent.instructions,
                     messages=self.messages,
                     functions=current_agent.functions,
-                    temperature=0.7,  # Explicitly pass default temp if needed
+                    temperature=0.7,
                     context_variables=context_variables,
-                    model=current_agent.model  # Pass the agent's model
+                    model=current_agent.model
                 )
                 
                 # Extract the content
@@ -134,14 +159,15 @@ class CollaborationCoordinator:
                 # Add the response to the conversation
                 self.messages.append({"role": "assistant", "content": content})
                 
-                # Log the agent's response
+                # Log the agent's response (the logger will clean up the tags)
                 if self.logger:
                     self.logger.agent_message(current_agent.name, processed["content"])
                 
                 # Check for consensus
                 if processed.get("consensus", False):
                     if self.logger:
-                        self.logger.success(f"Consensus reached after {self.turn_count + 1} turns!")
+                        consensus_message = f"{section_info} - Consensus reached!"
+                        self.logger.success(consensus_message)
                     return {
                         "consensus": True,
                         "forced_consensus": False,
@@ -178,7 +204,10 @@ class CollaborationCoordinator:
         # If we've reached the maximum number of turns without consensus
         if self.force_consensus_after_max_turns:
             if self.logger:
-                self.logger.warning(f"Forcing consensus after {self.max_turns} turns")
+                force_message = f"Forcing consensus after {self.max_turns} turns"
+                if section_info:
+                    force_message = f"{section_info} - {force_message}"
+                self.logger.warning(force_message)
             
             # Use the last agent's response as the final content
             final_content = self._force_consensus()
@@ -194,7 +223,10 @@ class CollaborationCoordinator:
             }
         else:
             if self.logger:
-                self.logger.error(f"Failed to reach consensus after {self.max_turns} turns")
+                fail_message = f"Failed to reach consensus after {self.max_turns} turns"
+                if section_info:
+                    fail_message = f"{section_info} - {fail_message}"
+                self.logger.error(fail_message)
             
             return {
                 "consensus": False,
@@ -204,7 +236,8 @@ class CollaborationCoordinator:
                 "messages": self.messages,
                 "metadata": {}
             }
-    
+        
+
     def _force_consensus(self) -> str:
         """
         Force consensus by using the last agent's response.

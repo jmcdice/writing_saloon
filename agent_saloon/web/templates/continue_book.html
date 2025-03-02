@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+
+{% block title %}Continue '{{ book.title }}' - Agent Saloon{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">Continue Book: {{ book.title }}</h2>
+        
+        <div class="card mb-4">
+            <div class="card-header">Book Progress</div>
+            <div class="card-body">
+                <div class="progress progress-indicator">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: {{ book.get_progress().progress_percentage }}%;" 
+                         aria-valuenow="{{ book.get_progress().progress_percentage }}" 
+                         aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                <p class="mt-2">
+                    {{ book.get_progress().completed_sections }} / {{ book.get_progress().total_sections }} sections complete
+                    ({{ book.get_progress().progress_percentage|round(1) }}%)
+                </p>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('continue_book', book_id=book.metadata.id) }}">
+                    <div class="mb-3">
+                        <label for="section_ids" class="form-label">Sections to Generate</label>
+                        <select class="form-select" id="section_ids" name="section_ids" multiple size="8">
+                            <option value="">All incomplete sections</option>
+                            {% if incomplete_sections %}
+                                {% for section in incomplete_sections %}
+                                    <option value="{{ section.id }}">{{ section.id }} - {{ section.title }}</option>
+                                {% endfor %}
+                            {% endif %}
+                        </select>
+                        <div class="form-text">
+                            Select specific sections or leave blank for all incomplete sections.
+                            Hold Ctrl/Cmd to select multiple sections.
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="min_words" class="form-label">Min Words Per Section</label>
+                                <input type="number" class="form-control" id="min_words" name="min_words" 
+                                       value="500" min="200" max="5000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_words" class="form-label">Max Words Per Section</label>
+                                <input type="number" class="form-control" id="max_words" name="max_words" 
+                                       value="2000" min="500" max="10000">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5>Advanced Settings</h5>
+                    
+                    <div class="mb-3">
+                        <label for="agents" class="form-label">Agents</label>
+                        <input type="text" class="form-control" id="agents" name="agents" 
+                               value="zero,gustave">
+                        <div class="form-text">Comma-separated list of agents (zero, gustave, camille)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="providers" class="form-label">Providers (Optional)</label>
+                        <input type="text" class="form-control" id="providers" name="providers" 
+                               placeholder="openai,anthropic">
+                        <div class="form-text">Comma-separated list of providers (openai, anthropic)</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-pencil"></i> Continue Writing
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">Incomplete Sections</div>
+            <div class="card-body">
+                <div class="section-list">
+                    {% if incomplete_sections %}
+                        {% for section in incomplete_sections %}
+                            <div class="section-item">
+                                <strong>{{ section.id }} - {{ section.title }}</strong>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="text-success">All sections are complete!</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const minWords = parseInt(document.getElementById('min_words').value);
+        const maxWords = parseInt(document.getElementById('max_words').value);
+        
+        if (minWords > maxWords) {
+            alert('Minimum words cannot be greater than maximum words');
+            e.preventDefault();
+        }
+    });
+    
+    // Handle section selection
+    const sectionSelect = document.getElementById('section_ids');
+    sectionSelect.addEventListener('change', function() {
+        const selectedOptions = Array.from(this.selectedOptions);
+        
+        // If "All incomplete sections" is selected, deselect others
+        if (selectedOptions.some(opt => opt.value === '')) {
+            for (let i = 0; i < this.options.length; i++) {
+                if (this.options[i].value !== '') {
+                    this.options[i].selected = false;
+                }
+            }
+        }
+        
+        // If any specific section is selected, deselect "All incomplete sections"
+        if (selectedOptions.some(opt => opt.value !== '')) {
+            for (let i = 0; i < this.options.length; i++) {
+                if (this.options[i].value === '') {
+                    this.options[i].selected = false;
+                }
+            }
+        }
+    });
+    
+    // Convert multiselect to comma-separated list before submit
+    document.querySelector('form').addEventListener('submit', function() {
+        const sectionSelect = document.getElementById('section_ids');
+        const selectedOptions = Array.from(sectionSelect.selectedOptions);
+        const selectedValues = selectedOptions.map(opt => opt.value).filter(v => v !== '');
+        
+        // Create a hidden input with the comma-separated list
+        if (selectedValues.length > 0) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'section_ids';
+            input.value = selectedValues.join(',');
+            this.appendChild(input);
+            
+            // Clear the original select to avoid duplicate values
+            for (let i = 0; i < sectionSelect.options.length; i++) {
+                sectionSelect.options[i].selected = false;
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -102,7 +102,7 @@ class TableOfContentsGenerator(BaseGenerator):
             "messages": result["messages"],
             "duration": result["duration"]
         }
-    
+
     def _extract_toc(self, content: str) -> List[Dict[str, Any]]:
         """
         Extract the table of contents from the generated content.
@@ -113,7 +113,25 @@ class TableOfContentsGenerator(BaseGenerator):
         Returns:
             Structured table of contents as a list of chapter dictionaries
         """
-        # Try to find JSON blocks in the content
+        # First try to extract from <content> tags
+        content_match = re.search(r'<content>(.*?)</content>', content, re.DOTALL | re.IGNORECASE)
+        if content_match:
+            clean_content = content_match.group(1).strip()
+            
+            # Try to parse as JSON
+            try:
+                data = json.loads(clean_content)
+                # Check if this looks like a TOC (list of chapters)
+                if isinstance(data, list) and all(isinstance(item, dict) and "title" in item for item in data):
+                    return data
+                # Check if this looks like a TOC with a 'chapters' key
+                elif isinstance(data, dict) and "chapters" in data and isinstance(data["chapters"], list):
+                    return data["chapters"]
+            except json.JSONDecodeError:
+                # If JSON parsing fails, continue with other extraction methods
+                pass
+        
+        # If no content tags or JSON parsing failed, try to find JSON blocks in the content
         json_pattern = r'```(?:json)?\s*([\s\S]*?)```'
         json_matches = re.findall(json_pattern, content)
         

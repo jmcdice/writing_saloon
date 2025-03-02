@@ -79,7 +79,7 @@ class TitleGenerator(BaseGenerator):
             "messages": result["messages"],
             "duration": result["duration"]
         }
-    
+
     def _extract_title(self, content: str) -> Optional[str]:
         """
         Extract the book title from the generated content.
@@ -90,7 +90,13 @@ class TitleGenerator(BaseGenerator):
         Returns:
             Extracted book title, or None if not found
         """
-        # Try to find explicit title markers
+        # First try to extract from <content> tags
+        content_match = re.search(r'<content>(.*?)</content>', content, re.DOTALL | re.IGNORECASE)
+        if content_match:
+            title = content_match.group(1).strip()
+            return title
+        
+        # If no content tags, try to find explicit title markers
         title_match = re.search(r"Book Title:\s*(.*?)(?:\n|$)", content, re.IGNORECASE)
         if title_match:
             return title_match.group(1).strip()
@@ -111,7 +117,7 @@ class TitleGenerator(BaseGenerator):
                 return line
         
         # Check for title in metadata
-        if "book_title" in self.coordinator.messages[-1].get("metadata", {}):
+        if "book_title" in getattr(self, 'coordinator', {}).get('messages', [{}])[-1].get("metadata", {}):
             return self.coordinator.messages[-1]["metadata"]["book_title"]
         
         return None

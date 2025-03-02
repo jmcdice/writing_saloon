@@ -126,10 +126,10 @@ class SectionGenerator(BaseGenerator):
             "messages": result["messages"],
             "duration": result["duration"]
         }
-    
+
     def _clean_content(self, content: str) -> str:
         """
-        Clean the generated content by removing agent commentary tags.
+        Clean the generated content by extracting only content within <content> tags.
         
         Args:
             content: Raw generated content
@@ -140,16 +140,29 @@ class SectionGenerator(BaseGenerator):
         # Store the current section title for potential heading insertion
         section_title = getattr(self, 'current_section_title', None)
         
-        # Remove agent tags and their content
-        for agent in ["zero", "gustave", "camille"]:
-            pattern = f"<{agent}>.*?</{agent}>"
-            content = re.sub(pattern, "", content, flags=re.DOTALL | re.IGNORECASE)
-        
-        # Remove consensus markers
-        content = re.sub(r'(?i)Consensus:\s*(?:true|false).*?(?=\n|$)', '', content)
-        
-        # Remove handoff markers
-        content = re.sub(r'(?i)HANDOFF:.*?(?=\n|$)', '', content)
+        # Extract content from <content> tags
+        content_match = re.search(r'<content>(.*?)</content>', content, re.DOTALL | re.IGNORECASE)
+        if content_match:
+            content = content_match.group(1).strip()
+        else:
+            # Fallback: clean content the traditional way if no content tags found
+            # Remove agent commentary
+            for agent in ["zero", "gustave", "camille"]:
+                pattern = f"<{agent}>.*?</{agent}>"
+                content = re.sub(pattern, "", content, flags=re.DOTALL | re.IGNORECASE)
+            
+            # Remove consensus markers
+            content = re.sub(r'(?i)Consensus:\s*(?:true|false).*?(?=\n|$)', '', content)
+            
+            # Remove handoff markers
+            content = re.sub(r'(?i)HANDOFF:.*?(?=\n|$)', '', content)
+            
+            # Remove book title markers
+            content = re.sub(r'(?i)Book Title:.*?(?=\n|$)', '', content)
+            
+            # Log a warning about missing content tags
+            if hasattr(self, 'logger') and self.logger:
+                self.logger.warning(f"No <content> tags found in response. Using fallback cleaning method.")
         
         # Remove unnecessary whitespace
         content = re.sub(r'\n{3,}', '\n\n', content)

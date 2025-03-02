@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Saloon - Home{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">Agent Saloon</h1>
+    <div class="col-lg-8 mx-auto">
+        <p class="lead mb-4">
+            A collaborative AI writing system using multiple AI agents for creative writing at scale.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            <a href="{{ url_for('create_book') }}" class="btn btn-primary btn-lg px-4 gap-3">
+                <i class="bi bi-pen"></i> Create a Book
+            </a>
+            <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary btn-lg px-4">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="container px-4 py-5">
+    <h2 class="pb-2 border-bottom">How It Works</h2>
+    <div class="row g-4 py-5">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-lightbulb" style="font-size: 2rem; color: #0d6efd;"></i>
+                    </div>
+                    <h3 class="card-title">1. Ideation</h3>
+                    <p class="card-text">
+                        Multiple AI agents collaborate to create a compelling book title
+                        and comprehensive table of contents structure.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-pencil-square" style="font-size: 2rem; color: #0d6efd;"></i>
+                    </div>
+                    <h3 class="card-title">2. Writing</h3>
+                    <p class="card-text">
+                        Agents with different perspectives write each section with thoughtful
+                        debates and iterations until they reach consensus.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="mb-3">
+                        <i class="bi bi-book" style="font-size: 2rem; color: #0d6efd;"></i>
+                    </div>
+                    <h3 class="card-title">3. Publishing</h3>
+                    <p class="card-text">
+                        Export your completed book to multiple formats including Markdown,
+                        HTML, and plain text for easy sharing.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container px-4 py-5">
+    <h2 class="pb-2 border-bottom">Meet the Agents</h2>
+    <div class="row g-4 py-5">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <span class="agent-badge agent-zero">Zero</span>
+                    <h3 class="card-title">The Creative Writer</h3>
+                    <p class="card-text">
+                        Zero is the enthusiastic and creative writer making initial proposals.
+                        Characterized by bold ideas and fresh perspectives, Zero starts the
+                        collaborative process with innovative approaches.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <span class="agent-badge agent-gustave">Gustave</span>
+                    <h3 class="card-title">The Eloquent Editor</h3>
+                    <p class="card-text">
+                        Gustave is the refined and eloquent editor, improving and polishing content.
+                        With sophistication and attention to detail, Gustave elevates initial
+                        proposals into refined works.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <span class="agent-badge agent-camille">Camille</span>
+                    <h3 class="card-title">The Insightful Reviewer</h3>
+                    <p class="card-text">
+                        Camille is the balanced and insightful reviewer, providing nuanced feedback.
+                        Bringing clarity and balance, Camille offers thoughtful analysis of both
+                        structure and content.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

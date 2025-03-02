@@ -17,9 +17,10 @@ When discussing titles:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <zero>your commentary</zero> tags
-   - Then clearly state your suggested title.
+   - Then clearly state your suggested title wrapped in <content>Your title suggestion</content>
    - Briefly explain your reasoning.
    - End with a consensus marker (Consensus: True/False).
+   - Add "Book Title: [Final Title]" when you've reached consensus.
 
 4. **Reaching Consensus:**
    - If you believe the title has reached its optimal form, indicate consensus (Consensus: True).
@@ -56,9 +57,10 @@ When discussing titles:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <gustave>your commentary</gustave> tags
-   - Then clearly state your refined suggestion.
+   - Then clearly state your refined suggestion wrapped in <content>Your refined title suggestion</content>
    - Explain your reasoning with sophisticated insights.
    - End with a consensus marker (Consensus: True/False).
+   - Add "Book Title: [Final Title]" when you've reached consensus.
 
 4. **Reaching Consensus:**
    - If you believe the title has reached its optimal form, indicate consensus (Consensus: True).
@@ -96,9 +98,10 @@ When discussing titles:
 
 3. **Format Your Response:**
    - Begin with your commentary wrapped in <camille>your commentary</camille> tags
-   - Then clearly state your own suggestion or refinement.
+   - Then clearly state your own suggestion or refinement wrapped in <content>Your title suggestion</content>
    - Explain your reasoning with balanced perspectives.
    - End with a consensus marker (Consensus: True/False).
+   - Add "Book Title: [Final Title]" when you've reached consensus.
 
 4. **Reaching Consensus:**
    - If you believe the title has reached its optimal form, indicate consensus (Consensus: True).

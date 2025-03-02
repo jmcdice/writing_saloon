@@ -26,6 +26,12 @@ dependencies = [
     "anthropic>=0.5.0",
     "requests>=2.25.0",
     "python-dotenv>=0.15.0",
+    # Web UI dependencies
+    "flask>=2.3.0",
+    "jinja2>=3.1.2",
+    "werkzeug>=2.3.7",
+    "itsdangerous>=2.1.2",
+    "gunicorn>=21.2.0"
 ]
 requires-python = ">=3.8"
 
@@ -35,9 +41,13 @@ requires-python = ">=3.8"
 
 [project.scripts]
 agent-saloon = "agent_saloon.main:main"
+agent-saloon-web = "run_web:main"
 
 [tool.setuptools]
 packages = ["agent_saloon"]
+
+[tool.setuptools.package-data]
+"agent_saloon.web" = ["templates/*.html", "static/*"]
 
 [tool.black]
 line-length = 88
@@ -63,3 +73,4 @@ disallow_untyped_defs = false
 minversion = "6.0"
 addopts = "--cov=agent_saloon"
 testpaths = ["tests"]
+

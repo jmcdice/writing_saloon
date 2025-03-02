@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Saloon - Create Book{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <h2 class="mb-4">Create a New Book</h2>
+        
+        <div class="card">
+            <div class="card-body">
+                <form method="post" action="{{ url_for('create_book') }}">
+                    <div class="mb-3">
+                        <label for="topic" class="form-label">Topic <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="topic" name="topic" required
+                               placeholder="E.g., Artificial Intelligence, Climate Change, etc.">
+                        <div class="form-text">The main subject of your book.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Title (Optional)</label>
+                        <input type="text" class="form-control" id="title" name="title"
+                               placeholder="Leave blank to auto-generate">
+                        <div class="form-text">If left blank, a title will be generated automatically.</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="min_chapters" class="form-label">Min Chapters</label>
+                                <input type="number" class="form-control" id="min_chapters" name="min_chapters" 
+                                       value="5" min="1" max="20">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_chapters" class="form-label">Max Chapters</label>
+                                <input type="number" class="form-control" id="max_chapters" name="max_chapters" 
+                                       value="10" min="1" max="30">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="min_words" class="form-label">Min Words Per Section</label>
+                                <input type="number" class="form-control" id="min_words" name="min_words" 
+                                       value="500" min="200" max="5000">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="max_words" class="form-label">Max Words Per Section</label>
+                                <input type="number" class="form-control" id="max_words" name="max_words" 
+                                       value="2000" min="500" max="10000">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    <h5>Advanced Settings</h5>
+                    
+                    <div class="mb-3">
+                        <label for="agents" class="form-label">Agents</label>
+                        <input type="text" class="form-control" id="agents" name="agents" 
+                               value="zero,gustave">
+                        <div class="form-text">Comma-separated list of agents (zero, gustave, camille)</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="providers" class="form-label">Providers (Optional)</label>
+                        <input type="text" class="form-control" id="providers" name="providers" 
+                               placeholder="openai,anthropic">
+                        <div class="form-text">Comma-separated list of providers (openai, anthropic)</div>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-magic"></i> Generate Book
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mt-4">
+            <div class="card-header">Agent Overview</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="agent-badge agent-zero me-2">Zero</span>
+                            <span>Creative Writer</span>
+                        </div>
+                        <p class="small text-muted">Enthusiastic initial ideas</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="agent-badge agent-gustave me-2">Gustave</span>
+                            <span>Eloquent Editor</span>
+                        </div>
+                        <p class="small text-muted">Refined improvements</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="agent-badge agent-camille me-2">Camille</span>
+                            <span>Insightful Reviewer</span>
+                        </div>
+                        <p class="small text-muted">Balanced perspectives</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const minChapters = parseInt(document.getElementById('min_chapters').value);
+        const maxChapters = parseInt(document.getElementById('max_chapters').value);
+        const minWords = parseInt(document.getElementById('min_words').value);
+        const maxWords = parseInt(document.getElementById('max_words').value);
+        
+        let hasError = false;
+        
+        if (minChapters > maxChapters) {
+            alert('Minimum chapters cannot be greater than maximum chapters');
+            hasError = true;
+        }
+        
+        if (minWords > maxWords) {
+            alert('Minimum words cannot be greater than maximum words');
+            hasError = true;
+        }
+        
+        if (hasError) {
+            e.preventDefault();
+        }
+    });
+    
+    // Update agent badges based on selection
+    document.getElementById('agents').addEventListener('input', function() {
+        const agentsList = this.value.split(',').map(a => a.trim().toLowerCase());
+        
+        document.querySelectorAll('.agent-badge').forEach(badge => {
+            const agentName = badge.textContent.toLowerCase();
+            if (agentsList.includes(agentName)) {
+                badge.style.opacity = '1';
+            } else {
+                badge.style.opacity = '0.3';
+            }
+        });
+    });
+</script>
+{% endblock %}
+

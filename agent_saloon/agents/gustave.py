@@ -15,13 +15,14 @@ class GustaveAgent(BaseAgent):
     on refinement. This agent typically reviews and improves upon initial proposals
     from Zero, bringing a polished and elevated perspective.
     """
-    
+
     def __init__(
         self,
         instructions: str,
         functions: Optional[List[Callable]] = None,
         model: str = "gpt-4",
-        tool_choice: Optional[str] = None
+        tool_choice: Optional[str] = None,
+        provider: str = "openai"  # Add this parameter
     ):
         """
         Initialize Gustave agent.
@@ -31,14 +32,17 @@ class GustaveAgent(BaseAgent):
             functions: List of callable functions
             model: The LLM model to use
             tool_choice: Optional tool selection parameter
+            provider: AI provider to use ("openai" or "anthropic")  # Add this documentation
         """
         super().__init__(
             name="Gustave",
             instructions=instructions,
             model=model,
             functions=functions,
-            tool_choice=tool_choice
+            tool_choice=tool_choice,
+            provider=provider  # Pass the provider to BaseAgent
         )
+        
     
     def process_response(self, content: str) -> Dict[str, Any]:
         """

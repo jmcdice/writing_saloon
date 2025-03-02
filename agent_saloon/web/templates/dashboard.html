@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Agent Saloon - Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-4">Books</h2>
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <a href="{{ url_for('create_book') }}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Create New Book
+                </a>
+            </div>
+            <div>
+                <select class="form-select" id="sortBooks">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="progress">By Progress</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="row row-cols-1 row-cols-md-2 g-4" id="books-container">
+            {% if books %}
+                {% for book in books %}
+                <div class="col">
+                    <div class="card h-100 book-card">
+                        {% if book.cover_image_path or book.cover_image %}
+                        <img src="{{ book.cover_image_path or book.cover_image }}" class="card-img-top book-cover" alt="Cover for {{ book.title }}">
+                        {% else %}
+                        <div class="card-img-top book-cover-placeholder d-flex align-items-center justify-content-center bg-light">
+                            <a href="{{ url_for('generate_book_cover', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-image"></i> Generate Cover
+                            </a>
+                        </div>
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ book.title }}</h5>
+                            <h6 class="card-subtitle mb-2 text-muted">{{ book.topic }}</h6>
+                            
+                            <div class="progress progress-indicator">
+                                <div class="progress-bar" role="progressbar" 
+                                     style="width: {{ book.progress.progress_percentage }}%;" 
+                                     aria-valuenow="{{ book.progress.progress_percentage }}" 
+                                     aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                            <p class="mt-2 small">
+                                {{ book.progress.completed_sections }} / {{ book.progress.total_sections }} sections complete
+                                ({{ book.progress.progress_percentage|round(1) }}%)
+                            </p>
+                            
+                            <div class="mt-3">
+                                <span class="badge bg-info text-dark">
+                                    {{ book.toc|length }} chapters
+                                </span>
+                                <span class="badge bg-secondary">
+                                    {{ book.created_at|replace("T", " ")|truncate(16, True, "") }}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex justify-content-between">
+                                <a href="{{ url_for('view_book', book_id=book.id) }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                                <a href="{{ url_for('continue_book', book_id=book.id) }}" class="btn btn-sm btn-outline-success">
+                                    <i class="bi bi-pencil"></i> Continue
+                                </a>
+                                <a href="{{ url_for('export_book', book_id=book.id) }}" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-download"></i> Export
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-12">
+                    <div class="alert alert-info">
+                        No books found. <a href="{{ url_for('create_book') }}">Create your first book</a>.
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <h2 class="mb-4">Active Tasks</h2>
+        {% if active_tasks %}
+            <div class="list-group" id="active-tasks-container">
+                {% for task_id, task in active_tasks.items() %}
+                <a href="{{ url_for('task_status', task_id=task_id) }}" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">{{ task.title or task.topic }}</h5>
+                        <small class="badge {{ 'bg-success' if task.status == 'completed' else 'bg-warning' if task.status == 'running' else 'bg-secondary' }}">
+                            {{ task.status }}
+                        </small>
+                    </div>
+                    <p class="mb-1">{{ task.type|capitalize }} {{ 'book' if task.type == 'create' else '' }}</p>
+                    <small>Started {{ task.created_at|int|timestamp_to_time }}</small>
+                </a>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                No active tasks.
+            </div>
+        {% endif %}
+        
+        <div class="card mt-4">
+            <div class="card-header">System Stats</div>
+            <div class="card-body">
+                <canvas id="statsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Time formatting helper
+    function formatTime(timestamp) {
+        const date = new Date(timestamp * 1000);
+        return date.toLocaleString();
+    }
+    
+    // Update active tasks periodically
+    function updateActiveTasks() {
+        fetch('/api/books')
+            .then(response => response.json())
+            .then(books => {
+                const container = document.getElementById('books-container');
+                // Update books if needed
+            });
+    }
+    
+    // Theme-aware chart colors
+    function getChartColors(isDark) {
+        return {
+            completed: isDark ? 'rgba(25, 135, 84, 0.8)' : 'rgba(40, 167, 69, 0.7)',
+            running: isDark ? 'rgba(255, 193, 7, 0.8)' : 'rgba(255, 193, 7, 0.7)',
+            queued: isDark ? 'rgba(173, 181, 189, 0.8)' : 'rgba(108, 117, 125, 0.7)',
+            textColor: isDark ? '#adb5bd' : '#212529'
+        };
+    }
+    
+    // Initialize statistics chart
+    let statsChart;
+    
+    function initializeChart() {
+        const ctx = document.getElementById('statsChart');
+        if (!ctx) return;
+        
+        const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+        const colors = getChartColors(isDark);
+        
+        // If chart already exists, destroy it first
+        if (statsChart) {
+            statsChart.destroy();
+        }
+        
+        statsChart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: ['Completed', 'In Progress', 'Queued'],
+                datasets: [{
+                    data: [
+                        {{ active_tasks.values()|selectattr('status', 'eq', 'completed')|list|length }},
+                        {{ active_tasks.values()|selectattr('status', 'eq', 'running')|list|length }},
+                        {{ active_tasks.values()|selectattr('status', 'eq', 'queued')|list|length }}
+                    ],
+                    backgroundColor: [
+                        colors.completed,
+                        colors.running,
+                        colors.queued
+                    ]
+                }]
+            },
+            options: {
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: colors.textColor
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Function to update charts when theme changes
+    function updateChartsForTheme() {
+        initializeChart();
+    }
+    
+    // Initialize chart on load
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeChart();
+    });
+    
+    // Book sorting
+    document.getElementById('sortBooks').addEventListener('change', function() {
+        const sortMethod = this.value;
+        const booksContainer = document.getElementById('books-container');
+        const bookCards = Array.from(booksContainer.querySelectorAll('.col'));
+        
+        bookCards.sort((a, b) => {
+            if (sortMethod === 'newest') {
+                // Sort by date (newest first)
+                const dateA = a.querySelector('.badge.bg-secondary').textContent.trim();
+                const dateB = b.querySelector('.badge.bg-secondary').textContent.trim();
+                return dateB.localeCompare(dateA);
+            } else if (sortMethod === 'oldest') {
+                // Sort by date (oldest first)
+                const dateA = a.querySelector('.badge.bg-secondary').textContent.trim();
+                const dateB = b.querySelector('.badge.bg-secondary').textContent.trim();
+                return dateA.localeCompare(dateB);
+            } else if (sortMethod === 'progress') {
+                // Sort by progress percentage
+                const progressA = parseFloat(a.querySelector('.progress-bar').getAttribute('aria-valuenow'));
+                const progressB = parseFloat(b.querySelector('.progress-bar').getAttribute('aria-valuenow'));
+                return progressB - progressA;
+            }
+            return 0;
+        });
+        
+        // Clear and re-append sorted cards
+        booksContainer.innerHTML = '';
+        bookCards.forEach(card => booksContainer.appendChild(card));
+    });
+    
+    // Refresh data every 30 seconds
+    setInterval(updateActiveTasks, 30000);
+</script>
+{% endblock %}

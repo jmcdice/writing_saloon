@@ -5,6 +5,8 @@ from typing import Dict, List, Any, Optional
 import os
 import time
 import json
+import requests
+from urllib.parse import urlparse
 
 from ..agents.base import BaseAgent
 from ..agents.factory import AgentFactory
@@ -14,6 +16,7 @@ from ..generators.section import SectionGenerator
 from ..prompts.title_prompts import ZERO_TITLE_PROMPT, GUSTAVE_TITLE_PROMPT, CAMILLE_TITLE_PROMPT
 from ..prompts.toc_prompts import ZERO_TOC_PROMPT, GUSTAVE_TOC_PROMPT, CAMILLE_TOC_PROMPT
 from ..prompts.section_prompts import ZERO_SECTION_PROMPT, GUSTAVE_SECTION_PROMPT, CAMILLE_SECTION_PROMPT
+from ..providers.openai_provider import OpenAIProvider
 from .book import Book
 from ..utils.logger import Logger
 
@@ -368,3 +371,155 @@ class BookManager:
             self.logger.success(f"Book saved to {book_dir}")
         
         return book
+        
+    def generate_cover_image_prompt(self, book: Book) -> str:
+        """
+        Generate a descriptive prompt for book cover image generation.
+        
+        Args:
+            book: The book to generate a cover for
+            
+        Returns:
+            A detailed prompt for image generation
+        """
+        if self.logger:
+            self.logger.system_message(f"Generating cover image prompt for book: {book.title}")
+        
+        # Create a provider to generate the image prompt
+        openai_provider = OpenAIProvider(api_key=self.openai_api_key)
+        
+        # Create a prompt for the AI to generate a cover image description
+        prompt_instructions = """
+        You are a professional book cover designer. Create a vivid, detailed description for a book cover
+        based on the book's title and table of contents. The description should be specific, visual,
+        and evocative, focusing on imagery, colors, and style that would make an attractive and
+        relevant book cover.
+        
+        Follow these guidelines:
+        1. Focus on strong imagery that represents the book's themes
+        2. Suggest a color palette that fits the book's tone
+        3. Describe a visual style (e.g., minimalist, illustrated, photographic)
+        4. Be specific about layout (e.g., central image, typography)
+        5. Keep your description to a single paragraph of 3-5 sentences
+        6. DO NOT include text elements like title or author in your description
+        7. Focus only on the visual elements
+        """
+        
+        # Create a message with book details
+        toc_text = ""
+        for chapter in book.toc:
+            toc_text += f"- {chapter['title']}\n"
+            if "sections" in chapter:
+                for section in chapter["sections"]:
+                    toc_text += f"  * {section['title']}\n"
+        
+        message = f"""
+        Book Title: {book.title}
+        Book Topic: {book.topic}
+        
+        Table of Contents:
+        {toc_text}
+        
+        Please create a detailed, visual description for a book cover based on this information.
+        """
+        
+        # Generate the image prompt
+        response = openai_provider.generate_response(
+            instructions=prompt_instructions,
+            messages=[{"role": "user", "content": message}],
+            temperature=0.7,
+            model="gpt-4"
+        )
+        
+        image_prompt = response["content"].strip()
+        
+        # Add a standard prefix to help DALL-E generate a book cover
+        final_prompt = f"A professional book cover design: {image_prompt} The image should look like a book cover with appropriate composition but WITHOUT any visible text."
+        
+        if self.logger:
+            self.logger.success(f"Generated cover image prompt: {final_prompt}")
+        
+        return final_prompt
+    
+    def generate_cover_image(self, book: Book) -> Dict[str, Any]:
+        """
+        Generate a cover image for a book using DALL-E.
+        
+        Args:
+            book: The book to generate a cover for
+            
+        Returns:
+            Dictionary with image URL and metadata
+        """
+        if self.logger:
+            self.logger.system_message(f"Generating cover image for book: {book.title}")
+        
+        # Generate the image prompt
+        image_prompt = self.generate_cover_image_prompt(book)
+        
+        # Create a provider to generate the image
+        openai_provider = OpenAIProvider(api_key=self.openai_api_key)
+        
+        # Generate the image
+        image_result = openai_provider.generate_image(
+            prompt=image_prompt,
+            size="1024x1024",
+            model="dall-e-3",
+            quality="standard",
+            style="vivid"
+        )
+        
+        # Download and save the image file
+        image_url = image_result["url"]
+        
+        # Create images directory for the book
+        book_id = book.metadata["id"]
+        book_dir = os.path.join(self.output_dir, book_id)
+        images_dir = os.path.join(book_dir, "images")
+        os.makedirs(images_dir, exist_ok=True)
+        
+        # Generate a filename from the URL
+        filename = f"cover.jpg"
+        image_path = os.path.join(images_dir, filename)
+        
+        # Download the image
+        if self.logger:
+            self.logger.system_message(f"Downloading cover image from {image_url}")
+        
+        response = requests.get(image_url, stream=True)
+        if response.status_code == 200:
+            with open(image_path, 'wb') as f:
+                for chunk in response.iter_content(1024):
+                    f.write(chunk)
+            
+            # Generate a relative path for use in templates
+            relative_path = f"/books/{book_id}/images/{filename}"
+            
+            # Update book metadata with both URL and local path
+            book.metadata["cover_image"] = image_url
+            book.metadata["cover_image_path"] = relative_path
+            book.metadata["cover_image_prompt"] = image_prompt
+            book.metadata["cover_image_revised_prompt"] = image_result.get("revised_prompt", image_prompt)
+            
+            if self.logger:
+                self.logger.success(f"Added cover image URL: {image_url}")
+                self.logger.success(f"Added cover image path: {relative_path}")
+            
+            if self.logger:
+                self.logger.success(f"Cover image saved to {image_path}")
+        else:
+            if self.logger:
+                self.logger.error(f"Failed to download image: {response.status_code}")
+            # Still save the URL even if download failed
+            book.metadata["cover_image"] = image_url
+            book.metadata["cover_image_prompt"] = image_prompt
+            book.metadata["cover_image_revised_prompt"] = image_result.get("revised_prompt", image_prompt)
+        
+        # Save the book with the updated cover image
+        book.save(self.output_dir)
+        
+        if self.logger:
+            self.logger.success(f"Generated cover image for book: {book.title}")
+        
+        return image_result
+

@@ -179,6 +179,15 @@ class Book:
             "has_title": bool(self.title),
             "has_toc": bool(self.toc)
         }
+        
+    def get_total_word_count(self) -> int:
+        """
+        Get the total word count across all sections.
+        
+        Returns:
+            Total number of words in the book
+        """
+        return sum(section.get_word_count() for section in self.sections.values())
     
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -197,7 +206,8 @@ class Book:
             "toc": self.toc,
             "sections": {id: section.to_dict() for id, section in self.sections.items()},
             "status": self.metadata["status"],
-            "progress": self.get_progress()
+            "progress": self.get_progress(),
+            "cover_image": self.metadata.get("cover_image", None)
         }
     
     def save(self, directory: str = "books"):
