@@ -72,14 +72,11 @@ class ZeroAgent(BaseAgent):
         if title_match:
             book_title = title_match.group(1).strip()
         
-        # Clean up the content to remove system markers
-        clean_content = content
-        # Remove any function call indicators
-        clean_content = re.sub(r"HANDOFF: .*?(?:\n|$)", "", clean_content, flags=re.MULTILINE)
-        
+        # Keep full content with handoff markers to enable proper discussions
+        # This ensures the complete discussion is visible for consensus detection
         return {
             "consensus": consensus,
-            "content": clean_content.strip(),
+            "content": content.strip(),
             "book_title": book_title,
             "raw_response": content,
             "agent": "Zero"
